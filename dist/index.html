@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>西山公園 つつじ開花マップ</title>
+    <style>
+      :root {
+        --paper: #fffdf8;
+        --ink: #2f2a26;
+        --accent: #bf2f5b;
+        --accent-soft: #f9d8e2;
+        --line: #e7ddd0;
+        --shadow: 0 12px 28px rgba(53, 36, 39, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 8% 10%, #ffe2ea 0, #ffe2ea 12%, transparent 13%),
+          radial-gradient(circle at 92% 18%, #f4ead9 0, #f4ead9 9%, transparent 10%),
+          linear-gradient(180deg, #fff7ed 0%, #f8f5ef 45%, #f5f0e8 100%);
+      }
+
+      .wrap {
+        width: min(1280px, 96vw);
+        margin: 24px auto 36px;
+      }
+
+      .header {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .title {
+        margin: 0;
+        font-size: clamp(1.2rem, 2.4vw, 1.85rem);
+        letter-spacing: 0.03em;
+      }
+
+      .meta {
+        margin: 8px 0 0;
+        color: #6a5a51;
+        font-size: 0.95rem;
+      }
+
+      .meta strong {
+        color: #6d203e;
+      }
+
+      .map-shell {
+        position: relative;
+        margin-top: 16px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .map-image {
+        width: 100%;
+        display: block;
+      }
+
+      .spots-layer {
+        position: absolute;
+        inset: 0;
+      }
+
+      .spot {
+        position: absolute;
+        width: clamp(108px, 13vw, 156px);
+        transform: translate(-50%, -104%);
+        border: 2px solid #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(42, 25, 33, 0.38);
+        background: #fff;
+        padding: 0;
+        cursor: pointer;
+        transition: transform 0.16s ease, box-shadow 0.16s ease;
+      }
+
+      .spot::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -13px;
+        width: 0;
+        height: 0;
+        transform: translateX(-50%);
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        border-top: 13px solid #fff;
+        filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.18));
+      }
+
+      .spot:hover,
+      .spot:focus-visible {
+        transform: translate(-50%, -108%);
+        box-shadow: 0 14px 28px rgba(42, 25, 33, 0.46);
+      }
+
+      .spot.active {
+        outline: 3px solid #9f183d;
+        outline-offset: 2px;
+      }
+
+      .spot img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+      }
+
+      .spot-meta {
+        padding: 3px 6px;
+        font-size: 0.68rem;
+        line-height: 1.3;
+        color: #5f4242;
+        background: #fff7f2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .spot-badge {
+        display: inline-block;
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 0.69rem;
+        font-weight: 700;
+        color: #731635;
+        background: rgba(249, 216, 226, 0.92);
+        border: 1px solid #f2b8c8;
+      }
+
+      .panel {
+        margin-top: 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+
+      .panel[hidden] {
+        display: none;
+      }
+
+      .place-name {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+
+      .status-line {
+        margin: 6px 0 0;
+        font-size: 0.95rem;
+        color: #624f46;
+      }
+
+      .chips {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .chip {
+        background: var(--accent-soft);
+        color: #6b2339;
+        border: 1px solid #f2b8c8;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .gallery {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      }
+
+      .thumb {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid #e8ded3;
+        cursor: zoom-in;
+      }
+
+      .source {
+        margin-top: 12px;
+        font-size: 0.88rem;
+        color: #6c5b52;
+      }
+
+      .source a {
+        color: #7c1f3f;
+      }
+
+      .error {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border: 1px solid #e7c5cc;
+        border-radius: 10px;
+        color: #6b1c35;
+        background: #fff2f5;
+        font-size: 0.92rem;
+      }
+
+      dialog {
+        border: 0;
+        border-radius: 14px;
+        padding: 8px;
+        max-width: min(92vw, 960px);
+        box-shadow: 0 18px 44px rgba(32, 20, 18, 0.5);
+      }
+
+      dialog::backdrop {
+        background: rgba(20, 14, 14, 0.64);
+      }
+
+      .zoom-image {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 10px;
+      }
+
+      .zoom-info {
+        margin-top: 10px;
+        padding: 4px 2px 2px;
+      }
+
+      .zoom-place {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .zoom-status {
+        margin: 6px 0 0;
+        font-size: 0.92rem;
+        color: #624f46;
+      }
+
+      @media (max-width: 700px) {
+        .spot {
+          width: clamp(94px, 33vw, 126px);
+          transform: translate(-50%, -102%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="header">
+        <h1 class="title">西山公園 つつじ開花マップ</h1>
+        <p class="meta">
+          写真を地図上に直接表示しています。最終更新日: <strong id="updatedAt">読み込み中</strong>
+        </p>
+      </section>
+
+      <section class="map-shell" id="mapShell" aria-label="西山公園会場マップ">
+        <img class="map-image" src="./map.jpg" alt="西山公園会場マップ" />
+        <div class="spots-layer" id="spotsLayer"></div>
+      </section>
+
+      <section class="panel" id="infoPanel" aria-live="polite" hidden></section>
+      <div class="error" id="errorBox" hidden></div>
+    </main>
+
+    <dialog id="zoomDialog" aria-label="写真拡大表示">
+      <img id="zoomImage" class="zoom-image" alt="開花状況写真" />
+      <div class="zoom-info" id="zoomInfo"></div>
+    </dialog>
+
+    <script src="./flowering-data.js"></script>
+    <script>
+      const spotsLayer = document.getElementById("spotsLayer");
+      const infoPanel = document.getElementById("infoPanel");
+      const updatedAt = document.getElementById("updatedAt");
+      const errorBox = document.getElementById("errorBox");
+      const zoomDialog = document.getElementById("zoomDialog");
+      const zoomImage = document.getElementById("zoomImage");
+      const zoomInfo = document.getElementById("zoomInfo");
+      let points = [];
+      let sourceUrl = "";
+
+      function photoOffsets(index) {
+        const preset = [
+          { dx: 0, dy: 0 },
+          { dx: 6, dy: -5 },
+          { dx: -6, dy: -5 },
+          { dx: 10, dy: -10 },
+          { dx: -10, dy: -10 }
+        ];
+        return preset[index] || { dx: 0, dy: -12 - (index - 4) * 4 };
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function renderSpots() {
+        spotsLayer.innerHTML = "";
+
+        for (const point of points) {
+          point.photos.forEach((photo, index) => {
+            const button = document.createElement("button");
+            const offset = photoOffsets(index);
+            const left = clamp(point.x + offset.dx, 6, 94);
+            const top = clamp(point.y + offset.dy, 8, 96);
+
+            button.className = "spot";
+            button.type = "button";
+            button.style.left = `${left}%`;
+            button.style.top = `${top}%`;
+            button.innerHTML = `
+              <img src="${photo}" alt="${point.place} ${point.species} 写真${index + 1}" loading="lazy" data-src="${photo}">
+              <span class="spot-badge">${point.bloom}</span>
+              <div class="spot-meta">${point.place}</div>
+            `;
+            button.setAttribute("aria-label", `${point.place} ${point.species} ${point.bloom} 写真${index + 1}`);
+            button.addEventListener("click", () => {
+              selectPoint(point.id);
+              showPointDialog(point, photo, index + 1);
+            });
+            button.dataset.id = point.id;
+            spotsLayer.appendChild(button);
+          });
+        }
+      }
+
+      function showPointDialog(point, photoUrl, photoIndex) {
+        zoomImage.src = photoUrl;
+        zoomImage.alt = `${point.place} ${point.species} 写真${photoIndex}`;
+        zoomInfo.innerHTML = `
+          <h2 class="zoom-place">${point.place}</h2>
+          <p class="zoom-status">${point.species} / 開花状況: ${point.bloom} / ${point.date}</p>
+          <div class="chips">
+            <span class="chip">${point.species}</span>
+            <span class="chip">${point.bloom}</span>
+          </div>
+          <p class="source">出典: <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">鯖江市 西山公園つつじ開花情報</a></p>
+        `;
+        zoomDialog.showModal();
+      }
+
+      function renderPanel(point) {
+        infoPanel.innerHTML = `
+          <h2 class="place-name">${point.place}</h2>
+          <p class="status-line">${point.species} / 開花状況: ${point.bloom} / ${point.date}</p>
+          <div class="chips">
+            <span class="chip">${point.species}</span>
+            <span class="chip">${point.bloom}</span>
+          </div>
+          <div class="gallery">
+            ${point.photos
+              .map(
+                (url, index) =>
+                  `<img class="thumb" src="${url}" alt="${point.place} ${point.species} 写真${index + 1}" data-src="${url}" loading="lazy">`
+              )
+              .join("")}
+          </div>
+          <p class="source">出典: <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">鯖江市 西山公園つつじ開花情報</a></p>
+        `;
+
+        infoPanel.querySelectorAll(".thumb").forEach((img) => {
+          img.addEventListener("click", () => {
+            const photoIndex = Number(img.alt.match(/写真(\d+)/)?.[1] || 1);
+            showPointDialog(point, img.dataset.src, photoIndex);
+          });
+        });
+      }
+
+      function selectPoint(id) {
+        const point = points.find((item) => item.id === id);
+        if (!point) return;
+
+        document.querySelectorAll(".spot").forEach((pin) => {
+          pin.classList.toggle("active", pin.dataset.id === id);
+        });
+
+        renderPanel(point);
+      }
+
+      function showError(message) {
+        errorBox.hidden = false;
+        errorBox.textContent = message;
+      }
+
+      function loadData() {
+        try {
+          const data = window.FLOWERING_DATA;
+          if (!data) {
+            throw new Error("flowering-data.js が読み込まれていません");
+          }
+
+          sourceUrl = data.sourceUrl;
+          points = data.points || [];
+          updatedAt.textContent = data.pageUpdatedAt || "取得なし";
+
+          if (!points.length) {
+            throw new Error("表示できる開花地点データがありません。");
+          }
+
+          renderSpots();
+          selectPoint(points[0].id);
+        } catch (error) {
+          showError(
+            `${error.message}。ローカル確認は npm run dev でサーバー起動後に http://localhost:4173 を開いてください。`
+          );
+          updatedAt.textContent = "読み込み失敗";
+        }
+      }
+
+      zoomDialog.addEventListener("click", (event) => {
+        const rect = zoomDialog.getBoundingClientRect();
+        const clickedOutside =
+          event.clientX < rect.left ||
+          event.clientX > rect.right ||
+          event.clientY < rect.top ||
+          event.clientY > rect.bottom;
+
+        if (clickedOutside) zoomDialog.close();
+      });
+
+      loadData();
+    </script>
+  </body>
+</html>
