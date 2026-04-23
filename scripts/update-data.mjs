@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 
 const sourceUrl =
   "https://www.city.sabae.fukui.jp/kurashi_tetsuduki/doro_kasen_koen/koen/nishiyama/Koen0120260413.html";
-const outputPath = new URL("../dist/flowering-data.js", import.meta.url);
+const outputPath = new URL("../docs/flowering-data.js", import.meta.url);
 
 const placeCoordinates = [
   { test: /おまつり広場|お祭り広場/, x: 58, y: 43 },
