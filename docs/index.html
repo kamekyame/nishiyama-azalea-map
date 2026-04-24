@@ -292,7 +292,43 @@
       <div class="zoom-info" id="zoomInfo"></div>
     </dialog>
 
-    <script src="./flowering-data.js"></script>
+    <script>
+      window.FLOWERING_DATA = {
+  "sourceUrl": "https://www.city.sabae.fukui.jp/kurashi_tetsuduki/doro_kasen_koen/koen/nishiyama/Koen0120260413.html",
+  "fetchedAt": "2026-04-24T03:21:49.324Z",
+  "pageUpdatedAt": "2026年4月24日",
+  "points": [
+    {
+      "id": "spot-1",
+      "place": "お祭り広場付近",
+      "species": "ヒラドツツジ",
+      "bloom": "5分咲き",
+      "date": "4月24日撮影",
+      "x": 58,
+      "y": 43,
+      "photos": [
+        "./img/20260424_001736721_iOS.jpg",
+        "./img/20260424_002611317_iOS.jpg",
+        "./img/20260424_001900090_iOS.jpg",
+        "./img/20260424_001650029_iOS.jpg",
+      ]
+    },
+    {
+      "id": "spot-2",
+      "place": "道の駅階段広場付近",
+      "species": "クルメツツジ",
+      "bloom": "散り始め",
+      "date": "4月24日撮影",
+      "x": 30,
+      "y": 50,
+      "photos": [
+        "./img/20260424_002258413_iOS.jpg",
+        "./img/20260424_002319313_iOS.jpg"
+      ]
+    }
+  ]
+};
+    </script>
     <script>
       const spotsLayer = document.getElementById("spotsLayer");
       const infoPanel = document.getElementById("infoPanel");
@@ -410,10 +446,7 @@
       function loadData() {
         try {
           const data = window.FLOWERING_DATA;
-          if (!data) {
-            throw new Error("flowering-data.js が読み込まれていません");
-          }
-
+          
           sourceUrl = data.sourceUrl;
           points = data.points || [];
           updatedAt.textContent = data.pageUpdatedAt || "取得なし";
