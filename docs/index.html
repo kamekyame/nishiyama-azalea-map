@@ -22,35 +22,53 @@
         margin: 0;
         font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
         color: var(--ink);
+        padding-bottom: 72px;
         background:
-          radial-gradient(circle at 8% 10%, #ffe2ea 0, #ffe2ea 12%, transparent 13%),
-          radial-gradient(circle at 92% 18%, #f4ead9 0, #f4ead9 9%, transparent 10%),
+          radial-gradient(
+            circle at 8% 10%,
+            #ffe2ea 0,
+            #ffe2ea 12%,
+            transparent 13%
+          ),
+          radial-gradient(
+            circle at 92% 18%,
+            #f4ead9 0,
+            #f4ead9 9%,
+            transparent 10%
+          ),
           linear-gradient(180deg, #fff7ed 0%, #f8f5ef 45%, #f5f0e8 100%);
       }
 
       .wrap {
-        width: min(1280px, 96vw);
-        margin: 24px auto 36px;
+        width: 100%;
+        margin: 0;
       }
 
       .header {
-        background: var(--paper);
+        position: absolute;
+        left: clamp(10px, 2vw, 24px);
+        right: auto;
+        bottom: clamp(10px, 2vw, 24px);
+        z-index: 2;
+        width: min(640px, calc(100% - 20px));
+        background: rgba(255, 253, 248, 0.92);
         border: 1px solid var(--line);
         border-radius: 18px;
-        padding: 18px 20px;
+        padding: 14px 16px;
         box-shadow: var(--shadow);
+        backdrop-filter: blur(8px);
       }
 
       .title {
         margin: 0;
-        font-size: clamp(1.2rem, 2.4vw, 1.85rem);
+        font-size: clamp(1.15rem, 2.3vw, 1.8rem);
         letter-spacing: 0.03em;
       }
 
       .meta {
         margin: 8px 0 0;
         color: #6a5a51;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
       }
 
       .meta strong {
@@ -59,27 +77,33 @@
 
       .map-shell {
         position: relative;
-        margin-top: 16px;
+        margin: 0;
         background: var(--paper);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
+        border-bottom: 1px solid var(--line);
         overflow: hidden;
+      }
+
+      .map-canvas {
+        position: relative;
+        width: 100%;
       }
 
       .map-image {
         width: 100%;
+        height: auto;
         display: block;
       }
 
       .spots-layer {
         position: absolute;
         inset: 0;
+        z-index: 3;
       }
 
       .spot {
         position: absolute;
-        width: clamp(108px, 13vw, 156px);
+        width: 11.2%;
+        z-index: 1;
         transform: translate(-50%, -104%);
         border: 2px solid #ffffff;
         border-radius: 10px;
@@ -88,7 +112,9 @@
         background: #fff;
         padding: 0;
         cursor: pointer;
-        transition: transform 0.16s ease, box-shadow 0.16s ease;
+        transition:
+          transform 0.16s ease,
+          box-shadow 0.16s ease;
       }
 
       .spot::after {
@@ -107,13 +133,20 @@
 
       .spot:hover,
       .spot:focus-visible {
+        z-index: 100;
         transform: translate(-50%, -108%);
         box-shadow: 0 14px 28px rgba(42, 25, 33, 0.46);
       }
 
       .spot.active {
+        z-index: 2;
         outline: 3px solid #9f183d;
         outline-offset: 2px;
+      }
+
+      .spot.active:hover,
+      .spot.active:focus-visible {
+        z-index: 100;
       }
 
       .spot img {
@@ -150,12 +183,10 @@
       }
 
       .panel {
-        margin-top: 14px;
+        margin: 0;
         background: var(--paper);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        padding: 14px;
+        border-top: 1px solid var(--line);
+        padding: 18px clamp(16px, 3vw, 32px) 24px;
       }
 
       .panel[hidden] {
@@ -216,11 +247,29 @@
         color: #7c1f3f;
       }
 
+      .source-footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+        background: rgba(255, 253, 248, 0.94);
+        border-top: 1px solid rgba(231, 221, 208, 0.95);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 -10px 24px rgba(53, 36, 39, 0.08);
+      }
+
+      .source-footer .source {
+        width: min(1280px, 96vw);
+        margin: 0 auto;
+      }
+
       .error {
-        margin-top: 12px;
-        padding: 10px 12px;
+        margin: 0;
+        padding: 12px clamp(16px, 3vw, 32px) 18px;
         border: 1px solid #e7c5cc;
-        border-radius: 10px;
+        border-radius: 0;
         color: #6b1c35;
         background: #fff2f5;
         font-size: 0.92rem;
@@ -262,30 +311,57 @@
       }
 
       @media (max-width: 700px) {
+        body {
+          padding-bottom: 88px;
+        }
+
+        .header {
+          left: 8px;
+          bottom: 8px;
+          width: calc(100% - 16px);
+          padding: 12px 14px;
+        }
+
         .spot {
-          width: clamp(94px, 33vw, 126px);
+          width: 21%;
           transform: translate(-50%, -102%);
+        }
+
+        .source-footer {
+          padding-left: 12px;
+          padding-right: 12px;
         }
       }
     </style>
   </head>
   <body>
     <main class="wrap">
-      <section class="header">
-        <h1 class="title">西山公園 つつじ開花マップ</h1>
-        <p class="meta">
-          写真を地図上に直接表示しています。最終更新日: <strong id="updatedAt">読み込み中</strong>
-        </p>
-      </section>
-
       <section class="map-shell" id="mapShell" aria-label="西山公園会場マップ">
-        <img class="map-image" src="./map.jpg" alt="西山公園会場マップ" />
-        <div class="spots-layer" id="spotsLayer"></div>
+        <div class="map-canvas">
+          <img class="map-image" src="./map.jpg" alt="西山公園会場マップ" />
+          <div class="spots-layer" id="spotsLayer"></div>
+          <section class="header">
+            <h1 class="title">西山公園 つつじ開花マップ</h1>
+            <p class="meta">
+              写真を地図上に直接表示しています。最終更新日:
+              <strong id="updatedAt">読み込み中</strong>
+            </p>
+          </section>
+        </div>
       </section>
 
       <section class="panel" id="infoPanel" aria-live="polite" hidden></section>
       <div class="error" id="errorBox" hidden></div>
     </main>
+
+    <footer class="source-footer">
+      <p class="source">
+        出典:
+        <a id="sourceLink" href="#" target="_blank" rel="noopener noreferrer"
+          >鯖江市 西山公園つつじ開花情報</a
+        >
+      </p>
+    </footer>
 
     <dialog id="zoomDialog" aria-label="写真拡大表示">
       <img id="zoomImage" class="zoom-image" alt="開花状況写真" />
@@ -294,46 +370,48 @@
 
     <script>
       window.FLOWERING_DATA = {
-  "sourceUrl": "https://www.city.sabae.fukui.jp/kurashi_tetsuduki/doro_kasen_koen/koen/nishiyama/Koen0120260413.html",
-  "fetchedAt": "2026-04-24T03:21:49.324Z",
-  "pageUpdatedAt": "2026年4月24日",
-  "points": [
-    {
-      "id": "spot-1",
-      "place": "お祭り広場付近",
-      "species": "ヒラドツツジ",
-      "bloom": "5分咲き",
-      "date": "4月24日撮影",
-      "x": 58,
-      "y": 43,
-      "photos": [
-        "./img/20260424_001736721_iOS.jpg",
-        "./img/20260424_002611317_iOS.jpg",
-        "./img/20260424_001900090_iOS.jpg",
-        "./img/20260424_001650029_iOS.jpg",
-      ]
-    },
-    {
-      "id": "spot-2",
-      "place": "道の駅階段広場付近",
-      "species": "クルメツツジ",
-      "bloom": "散り始め",
-      "date": "4月24日撮影",
-      "x": 30,
-      "y": 50,
-      "photos": [
-        "./img/20260424_002258413_iOS.jpg",
-        "./img/20260424_002319313_iOS.jpg"
-      ]
-    }
-  ]
-};
+        sourceUrl:
+          "https://www.city.sabae.fukui.jp/kurashi_tetsuduki/doro_kasen_koen/koen/nishiyama/Koen0120260413.html",
+        fetchedAt: "2026-04-24T03:21:49.324Z",
+        pageUpdatedAt: "2026年4月24日",
+        points: [
+          {
+            id: "spot-1",
+            place: "お祭り広場付近",
+            species: "ヒラドツツジ",
+            bloom: "5分咲き",
+            date: "4月24日撮影",
+            x: 58,
+            y: 43,
+            photos: [
+              "./img/20260424_001736721_iOS.jpg",
+              "./img/20260424_002611317_iOS.jpg",
+              "./img/20260424_001900090_iOS.jpg",
+              "./img/20260424_001650029_iOS.jpg",
+            ],
+          },
+          {
+            id: "spot-2",
+            place: "道の駅階段広場付近",
+            species: "クルメツツジ",
+            bloom: "散り始め",
+            date: "4月24日撮影",
+            x: 30,
+            y: 50,
+            photos: [
+              "./img/20260424_002258413_iOS.jpg",
+              "./img/20260424_002319313_iOS.jpg",
+            ],
+          },
+        ],
+      };
     </script>
     <script>
       const spotsLayer = document.getElementById("spotsLayer");
       const infoPanel = document.getElementById("infoPanel");
       const updatedAt = document.getElementById("updatedAt");
       const errorBox = document.getElementById("errorBox");
+      const sourceLink = document.getElementById("sourceLink");
       const zoomDialog = document.getElementById("zoomDialog");
       const zoomImage = document.getElementById("zoomImage");
       const zoomInfo = document.getElementById("zoomInfo");
@@ -346,7 +424,7 @@
           { dx: 6, dy: -5 },
           { dx: -6, dy: -5 },
           { dx: 10, dy: -10 },
-          { dx: -10, dy: -10 }
+          { dx: -10, dy: -10 },
         ];
         return preset[index] || { dx: 0, dy: -12 - (index - 4) * 4 };
       }
@@ -374,7 +452,10 @@
               <span class="spot-badge">${point.bloom}</span>
               <div class="spot-meta">${point.place}</div>
             `;
-            button.setAttribute("aria-label", `${point.place} ${point.species} ${point.bloom} 写真${index + 1}`);
+            button.setAttribute(
+              "aria-label",
+              `${point.place} ${point.species} ${point.bloom} 写真${index + 1}`,
+            );
             button.addEventListener("click", () => {
               selectPoint(point.id);
               showPointDialog(point, photo, index + 1);
@@ -395,7 +476,6 @@
             <span class="chip">${point.species}</span>
             <span class="chip">${point.bloom}</span>
           </div>
-          <p class="source">出典: <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">鯖江市 西山公園つつじ開花情報</a></p>
         `;
         zoomDialog.showModal();
       }
@@ -412,11 +492,10 @@
             ${point.photos
               .map(
                 (url, index) =>
-                  `<img class="thumb" src="${url}" alt="${point.place} ${point.species} 写真${index + 1}" data-src="${url}" loading="lazy">`
+                  `<img class="thumb" src="${url}" alt="${point.place} ${point.species} 写真${index + 1}" data-src="${url}" loading="lazy">`,
               )
               .join("")}
           </div>
-          <p class="source">出典: <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">鯖江市 西山公園つつじ開花情報</a></p>
         `;
 
         infoPanel.querySelectorAll(".thumb").forEach((img) => {
@@ -446,8 +525,9 @@
       function loadData() {
         try {
           const data = window.FLOWERING_DATA;
-          
+
           sourceUrl = data.sourceUrl;
+          sourceLink.href = sourceUrl || "#";
           points = data.points || [];
           updatedAt.textContent = data.pageUpdatedAt || "取得なし";
 
@@ -459,7 +539,7 @@
           selectPoint(points[0].id);
         } catch (error) {
           showError(
-            `${error.message}。ローカル確認は npm run dev でサーバー起動後に http://localhost:4173 を開いてください。`
+            `${error.message}。ローカル確認は npm run dev でサーバー起動後に http://localhost:4173 を開いてください。`,
           );
           updatedAt.textContent = "読み込み失敗";
         }

@@ -436,9 +436,6 @@
           <div class="list-head">
             <div>
               <h2 class="list-title">駐車場一覧</h2>
-              <p class="list-note">
-                名称、満空状況、空車台数、料金を表示します。
-              </p>
             </div>
           </div>
           <div id="parkingList" class="parking-list"></div>
@@ -545,7 +542,7 @@
       const parkingList = document.getElementById("parkingList");
       const errorBox = document.getElementById("errorBox");
       const markers = new Map();
-      const refreshIntervalMs = 5 * 60 * 1000;
+      const refreshIntervalMs = 1 * 60 * 1000;
       let selectedId = null;
       let isRefreshing = false;
 
@@ -669,7 +666,6 @@
           <div class="parking-row">
             <div>
               <h3 class="parking-name">${lot.name}</h3>
-              <p class="parking-meta">駐車場情報</p>
             </div>
           </div>
           <div class="parking-stats">
