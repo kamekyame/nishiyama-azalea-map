@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>鯖江市営駐車場 満空マップ</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      :root {
+        --paper: #f7f2e7;
+        --panel: rgba(255, 252, 245, 0.92);
+        --ink: #23313a;
+        --muted: #697780;
+        --line: rgba(54, 79, 90, 0.18);
+        --accent: #0f766e;
+        --accent-soft: #d9f3ef;
+        --warn: #b45309;
+        --warn-soft: #fff1dc;
+        --danger: #b42318;
+        --danger-soft: #fde9e7;
+        --shadow: 0 18px 40px rgba(24, 40, 50, 0.15);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      a {
+        color: #0b5d57;
+      }
+
+      .page {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .hero,
+      .list-card {
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        padding: 16px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: #e6f3f2;
+        color: #0a5d58;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      h1 {
+        margin: 12px 0 8px;
+        font-size: clamp(1.15rem, 2vw, 1.7rem);
+        line-height: 1.2;
+      }
+
+      .lead {
+        margin: 0;
+        max-width: 70ch;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .hero-grid {
+        margin-top: 16px;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+
+      .metric {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid rgba(27, 52, 63, 0.08);
+      }
+
+      .metric-label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.05rem;
+      }
+
+      .list-head {
+        display: flex;
+        justify-content: flex-start;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .list-title {
+        margin: 0;
+        font-size: 1.08rem;
+      }
+
+      .list-note {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      #map {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      .list-card {
+        padding: 14px;
+        width: min(460px, 100%);
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .overlay {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        width: min(860px, calc(100vw - 28px));
+        height: calc(100vh - 28px);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        z-index: 500;
+        pointer-events: none;
+      }
+
+      .overlay > * {
+        pointer-events: auto;
+      }
+
+      .legend {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .legend-chip,
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 0.77rem;
+        font-weight: 700;
+      }
+
+      .chip-open,
+      .badge-open {
+        background: var(--accent-soft);
+        color: #0b605a;
+      }
+
+      .chip-crowded,
+      .badge-crowded {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+
+      .chip-full,
+      .badge-full,
+      .chip-error,
+      .badge-error {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .parking-list {
+        margin-top: 14px;
+        display: grid;
+        gap: 12px;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        padding: 2px 10px 18px 2px;
+        scrollbar-gutter: stable;
+      }
+
+      .parking-item {
+        border: 1px solid rgba(26, 52, 62, 0.1);
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 18px;
+        padding: 14px;
+        cursor: pointer;
+        transition:
+          transform 0.15s ease,
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+
+      .parking-item:hover,
+      .parking-item:focus-visible,
+      .parking-item.active {
+        transform: translateY(-2px);
+        border-color: rgba(15, 118, 110, 0.45);
+        box-shadow: 0 12px 24px rgba(21, 55, 61, 0.12);
+        outline: none;
+      }
+
+      .parking-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .parking-name {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .parking-meta {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 0.87rem;
+        line-height: 1.6;
+      }
+
+      .parking-stats {
+        margin-top: 12px;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .stat {
+        padding: 10px;
+        border-radius: 14px;
+        background: rgba(238, 242, 243, 0.72);
+      }
+
+      .stat-label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.74rem;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 1rem;
+      }
+
+      .stat .badge {
+        margin-top: 4px;
+      }
+
+      .parking-fee {
+        margin: 12px 0 0;
+        padding: 12px;
+        border-radius: 14px;
+        background: #fcf7ec;
+        color: #4c5b62;
+        font-size: 0.87rem;
+        line-height: 1.7;
+        white-space: pre-line;
+      }
+
+      .footer-note,
+      .error-box {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        font-size: 0.9rem;
+        line-height: 1.7;
+      }
+
+      .footer-note {
+        background: rgba(255, 250, 240, 0.8);
+        border: 1px solid rgba(180, 131, 32, 0.18);
+        color: #6e5738;
+      }
+
+      .error-box {
+        display: none;
+        background: var(--danger-soft);
+        border: 1px solid rgba(180, 35, 24, 0.18);
+        color: var(--danger);
+      }
+
+      .error-box.show {
+        display: block;
+      }
+
+      .popup {
+        min-width: 220px;
+      }
+
+      .popup h3 {
+        margin: 0 0 8px;
+        font-size: 1rem;
+      }
+
+      .popup p {
+        margin: 6px 0;
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+
+      .popup-badge {
+        margin: 8px 0;
+      }
+
+      .leaflet-popup-content-wrapper {
+        border-radius: 16px;
+      }
+
+      .marker-dot {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 5px solid rgba(255, 255, 255, 0.95);
+        box-shadow: 0 6px 16px rgba(17, 37, 45, 0.28);
+        color: #ffffff;
+        font-size: 0.88rem;
+        font-weight: 800;
+        line-height: 1;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+      }
+
+      .marker-open {
+        background: #0f766e;
+      }
+
+      .marker-crowded {
+        background: #d97706;
+      }
+
+      .marker-full,
+      .marker-error {
+        background: #b42318;
+      }
+
+      @media (max-width: 640px) {
+        body {
+          overflow: auto;
+        }
+
+        .overlay {
+          position: static;
+          width: 100%;
+          height: auto;
+          max-height: none;
+          padding: 10px;
+          z-index: 600;
+        }
+
+        .list-card {
+          width: 100%;
+          flex: none;
+        }
+
+        #map {
+          position: fixed;
+          z-index: 1;
+        }
+
+        .parking-list {
+          max-height: 42vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div id="map" aria-label="駐車場地図"></div>
+      <div class="overlay">
+        <section class="hero">
+          <h1>鯖江市営駐車場 満空マップ</h1>
+          <div class="hero-grid">
+            <div class="metric">
+              <span class="metric-label">対象駐車場</span>
+              <strong id="lotCount"></strong>
+            </div>
+            <div class="metric">
+              <span class="metric-label">空車あり</span>
+              <strong id="openCount"></strong>
+            </div>
+            <div class="metric">
+              <span class="metric-label">合計空車台数</span>
+              <strong id="totalSpaces"></strong>
+            </div>
+            <div class="metric">
+              <span class="metric-label">最終更新</span>
+              <strong id="updatedAt"></strong>
+            </div>
+          </div>
+          <div class="legend" aria-label="凡例">
+            <span class="legend-chip chip-open">空車あり</span>
+            <span class="legend-chip chip-crowded">残りわずか</span>
+            <span class="legend-chip chip-full">満車 / 取得失敗</span>
+          </div>
+        </section>
+
+        <section class="list-card">
+          <div class="list-head">
+            <div>
+              <h2 class="list-title">駐車場一覧</h2>
+              <p class="list-note">
+                名称、満空状況、空車台数、料金を表示します。
+              </p>
+            </div>
+          </div>
+          <div id="parkingList" class="parking-list"></div>
+          <div
+            id="errorBox"
+            class="error-box"
+            role="status"
+            aria-live="polite"
+          ></div>
+        </section>
+      </div>
+    </main>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script>
+      const parkingLots = [
+        {
+          id: "ekimae",
+          name: "鯖江駅前駐車場",
+          lat: 35.94306250000001,
+          lng: 136.1880625,
+          statusUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003394/001/0001parking_status.xml",
+          spaceUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003394/001/0001spacecount.xml",
+          fee: "駐車料金: 最初の1時間以内は無料。\nそれ以降1時間以内までごとに100円加算。",
+        },
+        {
+          id: "east-1",
+          name: "鯖江駅東第1駐車場",
+          lat: 35.94293750000001,
+          lng: 136.1894375,
+          statusUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003387/001/0001parking_status.xml",
+          spaceUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003387/001/0001spacecount.xml",
+          fee: "駐車料金: 最初の1時間以内は無料。\nそれ以降23時間以内は300円。\nそれ以降24時間まで毎に700円加算。",
+        },
+        {
+          id: "east-2",
+          name: "鯖江駅東第2駐車場",
+          lat: 35.94306250000001,
+          lng: 136.18993749999998,
+          statusUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003385/001/0001parking_status.xml",
+          spaceUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003385/001/0001spacecount.xml",
+          fee: "駐車料金: 最初の1時間以内は無料。\nそれ以降23時間以内は300円。\nそれ以降24時間まで毎に700円加算。",
+        },
+        {
+          id: "east-3",
+          name: "鯖江駅東第3駐車場",
+          lat: 35.9434375,
+          lng: 136.1894375,
+          statusUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003386/001/0001parking_status.xml",
+          spaceUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003386/001/0001spacecount.xml",
+          fee: "駐車料金: 最初の1時間以内は無料。\nそれ以降23時間以内は300円。\nそれ以降24時間まで毎に700円加算。",
+        },
+        {
+          id: "culture-center",
+          name: "文化センター前駐車場",
+          lat: 35.943312500000005,
+          lng: 136.1973125,
+          statusUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003504/001/0001parking_status.xml",
+          spaceUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003504/001/0001spacecount.xml",
+          fee: "駐車料金: 最初の4時間以内は無料。\nそれ以降20時間以内は300円。\nそれ以降24時間までごとに700円加算。",
+        },
+        {
+          id: "kyoyo-fureai",
+          name: "嚮陽会館前駐車場",
+          lat: 35.9478125,
+          lng: 136.18043749999998,
+          statusUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003344/001/0001parking_status.xml",
+          spaceUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003344/001/0001spacecount.xml",
+          fee: "駐車料金: 最初の2時間以内は無料。\nそれ以降22時間以内は300円。\nそれ以降24時間以内までごとに700円加算。",
+        },
+        {
+          id: "fureai",
+          name: "ふれあい広場駐車場",
+          lat: 35.948062500000006,
+          lng: 136.18243749999993,
+          statusUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003454/001/0001parking_status.xml",
+          spaceUrl:
+            "https://cnt.parkingweb.jp/001/000000/000001/003454/001/0001spacecount.xml",
+          fee: "駐車料金: 最初の2時間以内は無料。\nそれ以降22時間以内は300円。\nそれ以降24時間以内までごとに700円加算。",
+        },
+      ];
+
+      const lotCount = document.getElementById("lotCount");
+      const openCount = document.getElementById("openCount");
+      const totalSpaces = document.getElementById("totalSpaces");
+      const updatedAt = document.getElementById("updatedAt");
+      const parkingList = document.getElementById("parkingList");
+      const errorBox = document.getElementById("errorBox");
+      const markers = new Map();
+      const refreshIntervalMs = 5 * 60 * 1000;
+      let selectedId = null;
+      let isRefreshing = false;
+
+      lotCount.textContent = `${parkingLots.length}件`;
+
+      const map = L.map("map", {
+        zoomControl: true,
+        scrollWheelZoom: true,
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+
+      function fitMapToLots(lots) {
+        if (!lots.length) return;
+
+        const bounds = L.latLngBounds(lots.map((lot) => [lot.lat, lot.lng]));
+        const isMobile = window.innerWidth <= 640;
+
+        map.fitBounds(bounds, {
+          paddingTopLeft: isMobile ? [20, 20] : [460, 30],
+          paddingBottomRight: [30, 30],
+          maxZoom: 16,
+        });
+      }
+
+      fitMapToLots(parkingLots);
+
+      function createMarkerIcon(kind, spaces) {
+        const markerText = Number.isFinite(spaces) ? String(spaces) : "?";
+
+        return L.divIcon({
+          className: "",
+          html: `<div class="marker-dot marker-${kind}">${markerText}</div>`,
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+          popupAnchor: [0, -22],
+        });
+      }
+
+      function parseXmlValue(xmlText, tagName) {
+        const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+        const parserError = xml.querySelector("parsererror");
+        if (parserError) {
+          throw new Error("XML の解析に失敗しました");
+        }
+
+        return xml.querySelector(tagName)?.textContent?.trim() || "";
+      }
+
+      function normalizeStatus(rawStatus, spaces) {
+        const statusCode = Number(rawStatus);
+
+        if (Number.isFinite(spaces) && spaces <= 0) {
+          return { label: "満車", kind: "full" };
+        }
+
+        if (statusCode === 2) {
+          if (Number.isFinite(spaces) && spaces <= 10) {
+            return { label: "残りわずか", kind: "crowded" };
+          }
+          return { label: "空車", kind: "open" };
+        }
+
+        if (statusCode === 1) {
+          return { label: "満車", kind: "full" };
+        }
+
+        if (Number.isFinite(spaces) && spaces > 0) {
+          return { label: "空車", kind: "open" };
+        }
+
+        return { label: "確認中", kind: "error" };
+      }
+
+      async function fetchLotStatus(lot) {
+        const [statusResponse, spaceResponse] = await Promise.all([
+          fetch(lot.statusUrl),
+          fetch(lot.spaceUrl),
+        ]);
+
+        if (!statusResponse.ok || !spaceResponse.ok) {
+          throw new Error(`${lot.name} の XML を取得できませんでした`);
+        }
+
+        const [statusXml, spaceXml] = await Promise.all([
+          statusResponse.text(),
+          spaceResponse.text(),
+        ]);
+
+        const rawStatus = parseXmlValue(statusXml, "FullStatus");
+        const rawSpaces = parseXmlValue(spaceXml, "ParkingSpaceCount");
+        const updateDate =
+          parseXmlValue(spaceXml, "UpdateDate") ||
+          parseXmlValue(statusXml, "UpdateDate");
+        const xmlName =
+          parseXmlValue(spaceXml, "Name") || parseXmlValue(statusXml, "Name");
+        const spaces = Number.parseInt(rawSpaces, 10);
+        const normalized = normalizeStatus(rawStatus, spaces);
+
+        return {
+          ...lot,
+          xmlName,
+          rawStatus,
+          spaces: Number.isFinite(spaces) ? spaces : null,
+          updatedAt: updateDate || "取得なし",
+          statusLabel: normalized.label,
+          statusKind: normalized.kind,
+          fetchError: false,
+        };
+      }
+
+      function parkingItemHtml(lot) {
+        const spacesLabel =
+          lot.spaces === null ? "取得失敗" : `${lot.spaces}台`;
+
+        return `
+          <div class="parking-row">
+            <div>
+              <h3 class="parking-name">${lot.name}</h3>
+              <p class="parking-meta">駐車場情報</p>
+            </div>
+          </div>
+          <div class="parking-stats">
+            <div class="stat">
+              <span class="stat-label">満空状況</span>
+              <span class="badge badge-${lot.statusKind}">${lot.statusLabel}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">空車台数</span>
+              <strong>${spacesLabel}</strong>
+            </div>
+          </div>
+          <div class="parking-fee">${lot.fee}</div>
+        `;
+      }
+
+      function popupHtml(lot) {
+        const spacesLabel =
+          lot.spaces === null ? "取得失敗" : `${lot.spaces}台`;
+        return `
+          <div class="popup">
+            <h3>${lot.name}</h3>
+            <div class="popup-badge"><span class="badge badge-${lot.statusKind}">${lot.statusLabel}</span></div>
+            <p><strong>空車台数:</strong> ${spacesLabel}</p>
+          </div>
+        `;
+      }
+
+      function selectLot(id) {
+        selectedId = id;
+
+        document.querySelectorAll(".parking-item").forEach((element) => {
+          element.classList.toggle("active", element.dataset.id === id);
+        });
+
+        for (const [lotId, marker] of markers.entries()) {
+          if (lotId === id) {
+            marker.openPopup();
+          }
+        }
+      }
+
+      function renderLots(lots) {
+        parkingList.innerHTML = "";
+        markers.forEach((marker) => marker.remove());
+        markers.clear();
+
+        lots.forEach((lot) => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "parking-item";
+          item.dataset.id = lot.id;
+          item.innerHTML = parkingItemHtml(lot);
+          item.addEventListener("click", () => selectLot(lot.id));
+          parkingList.appendChild(item);
+
+          const marker = L.marker([lot.lat, lot.lng], {
+            icon: createMarkerIcon(lot.statusKind, lot.spaces),
+            title: lot.name,
+          })
+            .addTo(map)
+            .bindPopup(popupHtml(lot));
+
+          marker.on("click", () => selectLot(lot.id));
+          markers.set(lot.id, marker);
+        });
+
+        fitMapToLots(lots);
+
+        if (lots[0]) {
+          selectLot(lots[0].id);
+        }
+      }
+
+      function renderSummary(lots) {
+        const availableLots = lots.filter(
+          (lot) => lot.statusKind === "open" || lot.statusKind === "crowded",
+        );
+        const spaceTotal = lots.reduce(
+          (sum, lot) => sum + (Number.isFinite(lot.spaces) ? lot.spaces : 0),
+          0,
+        );
+        const latestUpdate =
+          lots
+            .map((lot) => lot.updatedAt)
+            .find((value) => value && value !== "取得なし") || "取得なし";
+
+        openCount.textContent = `${availableLots.length}件`;
+        totalSpaces.textContent = `${spaceTotal}台`;
+        updatedAt.textContent = latestUpdate;
+      }
+
+      function showErrors(messages) {
+        if (!messages.length) {
+          errorBox.classList.remove("show");
+          errorBox.textContent = "";
+          return;
+        }
+
+        errorBox.classList.add("show");
+        errorBox.textContent = messages.join(" ");
+      }
+
+      async function loadParkingData() {
+        if (isRefreshing) {
+          return;
+        }
+
+        isRefreshing = true;
+
+        try {
+          const results = await Promise.allSettled(
+            parkingLots.map((lot) => fetchLotStatus(lot)),
+          );
+          const errors = [];
+
+          const resolvedLots = results.map((result, index) => {
+            if (result.status === "fulfilled") {
+              return result.value;
+            }
+
+            const lot = parkingLots[index];
+            errors.push(`${lot.name} の取得に失敗しました。`);
+
+            return {
+              ...lot,
+              xmlName: "",
+              rawStatus: "",
+              spaces: null,
+              updatedAt: "取得失敗",
+              statusLabel: "取得失敗",
+              statusKind: "error",
+              fetchError: true,
+            };
+          });
+
+          renderSummary(resolvedLots);
+          renderLots(resolvedLots);
+          showErrors(errors);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+
+      loadParkingData().catch((error) => {
+        showErrors([error.message || "駐車場データの読込に失敗しました。"]);
+        openCount.textContent = "取得失敗";
+        totalSpaces.textContent = "取得失敗";
+        updatedAt.textContent = "取得失敗";
+      });
+
+      window.setInterval(() => {
+        loadParkingData().catch((error) => {
+          showErrors([error.message || "駐車場データの再読込に失敗しました。"]);
+        });
+      }, refreshIntervalMs);
+    </script>
+  </body>
+</html>
